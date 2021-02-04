@@ -1,15 +1,15 @@
-const Color = artifacts.require('./Color.sol')
+const { assert } = require("chai");
 
-require('chai')
-  .use(require('chai-as-promised'))
-  .should()
 
-contract('Color', (accounts) => {
-  let contract
+const ArtAuction = artifacts.require("ArtAuction");
 
+contract("ArtAuction", function(accounts) {
+  const AccountOne = accounts[0];
+	const AccountTwo = accounts[1];
+  
   before(async () => {
-    contract = await Color.deployed()
-  })
+		contract = await ArtAuction.deployed();
+  });
 
   describe('deployment', async () => {
     it('deploys successfully', async () => {
@@ -22,52 +22,54 @@ contract('Color', (accounts) => {
 
     it('has a name', async () => {
       const name = await contract.name()
-      assert.equal(name, 'Color')
+      assert.equal(name, 'DART')
     })
 
     it('has a symbol', async () => {
       const symbol = await contract.symbol()
-      assert.equal(symbol, 'COLOR')
+      assert.equal(symbol, 'ART')
     })
 
   })
+  
 
-  describe('minting', async () => {
+	it('It should set an art item', async()=>{
+    let error = null;
+    try{
+    const ArtAuction = await ArtAuction.deployed();
+    await ArtAuction.addArtItem(100, "ipfshash", 10);
+    }
+    catch(error)
+    {error=error;}
+    assert.isNull(error);
+  });
 
-    it('creates a new token', async () => {
-      const result = await contract.mint('#EC058E')
-      const totalSupply = await contract.totalSupply()
-      // SUCCESS
-      assert.equal(totalSupply, 1)
-      const event = result.logs[0].args
-      assert.equal(event.tokenId.toNumber(), 1, 'id is correct')
-      assert.equal(event.from, '0x0000000000000000000000000000000000000000', 'from is correct')
-      assert.equal(event.to, accounts[0], 'to is correct')
 
-      // FAILURE: cannot mint same color twice
-      await contract.mint('#EC058E').should.be.rejected;
-    })
-  })
+it("should not add art item with price of zero", async () => {
+  // Arrange
+  let err = null;
 
-  describe('indexing', async () => {
-    it('lists colors', async () => {
-      // Mint 3 more tokens
-      await contract.mint('#5386E4')
-      await contract.mint('#FFFFFF')
-      await contract.mint('#000000')
-      const totalSupply = await contract.totalSupply()
+  // Act
+  try {
+    await contract.addArtItem(0, tTokenURI, 10, { from: AccountTwo });
+  } catch (error) {
+    err = error;
+  }
 
-      let color
-      let result = []
+  // Assert
+  assert.isNotNull(err);
+});
 
-      for (var i = 1; i <= totalSupply; i++) {
-        color = await contract.colors(i - 1)
-        result.push(color)
-      }
+it("should not cancel an auction that does not exists",async() =>{
+  let err=null;
 
-      let expected = ['#EC058E', '#5386E4', '#FFFFFF', '#000000']
-      assert.equal(result.join(','), expected.join(','))
-    })
-  })
-
-})
+  try{
+    await contract.cancelAuction(100, {from: AccountOne});
+  }
+  catch(error)
+  {
+    err=error;
+  }
+  assert.isNotNull(err);
+});
+});
